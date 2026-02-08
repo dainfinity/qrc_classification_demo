@@ -22,31 +22,11 @@ class SpinSystemSnapshot:
     couplings: Dict[Tuple[int, int], float]
 
 
-def _grid_shape(n_spins: int) -> Tuple[int, int]:
-    rows = int(np.floor(np.sqrt(n_spins)))
-    while rows > 1 and n_spins % rows != 0:
-        rows -= 1
-    cols = int(np.ceil(n_spins / rows))
-    return rows, cols
-
-
 def _build_edges(n_spins: int, topology: str) -> List[Tuple[int, int]]:
     if topology == "all_to_all":
         return [(i, j) for i in range(n_spins) for j in range(i + 1, n_spins)]
     if topology == "chain_1d":
         return [(i, i + 1) for i in range(n_spins - 1)]
-    if topology == "grid_2d":
-        rows, cols = _grid_shape(n_spins)
-        edges = []
-        for idx in range(n_spins):
-            r, c = divmod(idx, cols)
-            right = idx + 1
-            down = idx + cols
-            if c + 1 < cols and right < n_spins:
-                edges.append((idx, right))
-            if r + 1 < rows and down < n_spins:
-                edges.append((idx, down))
-        return edges
     raise ValueError(f"Unknown topology: {topology}")
 
 
@@ -55,14 +35,6 @@ def _build_positions(n_spins: int, topology: str) -> np.ndarray:
         xs = np.linspace(0.0, 1.0, n_spins)
         ys = np.zeros(n_spins)
         return np.stack([xs, ys], axis=1)
-    if topology == "grid_2d":
-        rows, cols = _grid_shape(n_spins)
-        pos = []
-        for idx in range(n_spins):
-            r, c = divmod(idx, cols)
-            pos.append((c, -r))
-        return np.array(pos, dtype=float)
-
     theta = np.linspace(0.0, 2.0 * np.pi, n_spins, endpoint=False)
     return np.stack([np.cos(theta), np.sin(theta)], axis=1)
 
@@ -179,7 +151,7 @@ def build_spin_control_panel(default_n: int = 8, seed: int = 1234) -> tuple[VBox
     j_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="J width")
     h_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="h field")
     topo_dropdown = Dropdown(
-        options=[("All-to-all", "all_to_all"), ("1D Chain", "chain_1d"), ("2D NN", "grid_2d")],
+        options=[("All-to-all", "all_to_all"), ("1D Chain", "chain_1d")],
         value="all_to_all",
         description="Topology",
     )
