@@ -12,43 +12,41 @@ import random
 from pathlib import Path
 
 
-def _make_chirp_samples(
+def _make_order_swap_samples(
     rng: random.Random,
     m: int,
     length: int,
-    chirp_sign: int,
+    label: int,
     noise_std: float,
 ) -> list[list[float]]:
-    """Generate class samples with overlapping frequency bands but opposite chirp direction.
+    """Generate samples with identical components but opposite temporal order.
 
-    - class 0: chirp_sign = +1 (frequency increases over time)
-    - class 1: chirp_sign = -1 (frequency decreases over time)
+    class 0: low-frequency (early) -> high-frequency (late)
+    class 1: high-frequency (early) -> low-frequency (late)
     """
     t = [k / (length - 1) for k in range(length)]
     samples: list[list[float]] = []
     for _ in range(m):
-        f0 = rng.uniform(1.4, 3.2)
-        chirp_mag = rng.uniform(0.7, 1.5)
-        chirp = chirp_sign * chirp_mag
-        phase = rng.uniform(0.0, 2.0 * math.pi)
-
-        amp_main = rng.uniform(0.8, 1.2)
-        amp_harm = rng.uniform(0.15, 0.35)
-        trend = rng.uniform(-0.25, 0.25)
-        envelope_strength = rng.uniform(0.0, 0.25)
+        f_low = rng.uniform(1.2, 2.0)
+        f_high = rng.uniform(3.0, 4.1)
+        phase_low = rng.uniform(0.0, 2.0 * math.pi)
+        phase_high = rng.uniform(0.0, 2.0 * math.pi)
+        amp_low = rng.uniform(0.75, 1.15)
+        amp_high = rng.uniform(0.75, 1.15)
+        trend = rng.uniform(-0.15, 0.15)
+        sharpness = rng.uniform(12.0, 20.0)
 
         seq = []
         for tk in t:
-            phase_main = 2.0 * math.pi * (f0 * tk + 0.5 * chirp * tk * tk) + phase
-            phase_harm = 2.0 * math.pi * (2.0 * f0 * tk + chirp * tk * tk) + 0.3 * phase
-
-            # class-dependent weak envelope to make the task non-trivial but separable
-            if chirp_sign > 0:
-                envelope = 1.0 + envelope_strength * (tk - 0.5)
+            gate = 1.0 / (1.0 + math.exp(-sharpness * (tk - 0.5)))
+            if label == 0:
+                w_low, w_high = 1.0 - gate, gate
             else:
-                envelope = 1.0 - envelope_strength * (tk - 0.5)
+                w_low, w_high = gate, 1.0 - gate
 
-            value = envelope * (amp_main * math.sin(phase_main) + amp_harm * math.sin(phase_harm))
+            low_component = amp_low * math.sin(2.0 * math.pi * f_low * tk + phase_low)
+            high_component = amp_high * math.sin(2.0 * math.pi * f_high * tk + phase_high)
+            value = w_low * low_component + w_high * high_component
             value += trend * (tk - 0.5)
             value += rng.gauss(0.0, noise_std)
             seq.append(value)
@@ -94,10 +92,10 @@ def make_dataset(
     train_half = m_train // 2
     test_half = m_test // 2
 
-    x0_train = _make_chirp_samples(rng, train_half, length, chirp_sign=+1, noise_std=0.16)
-    x1_train = _make_chirp_samples(rng, m_train - train_half, length, chirp_sign=-1, noise_std=0.16)
-    x0_test = _make_chirp_samples(rng, test_half, length, chirp_sign=+1, noise_std=0.16)
-    x1_test = _make_chirp_samples(rng, m_test - test_half, length, chirp_sign=-1, noise_std=0.16)
+    x0_train = _make_order_swap_samples(rng, train_half, length, label=0, noise_std=0.14)
+    x1_train = _make_order_swap_samples(rng, m_train - train_half, length, label=1, noise_std=0.14)
+    x0_test = _make_order_swap_samples(rng, test_half, length, label=0, noise_std=0.14)
+    x1_test = _make_order_swap_samples(rng, m_test - test_half, length, label=1, noise_std=0.14)
 
     x_train = x0_train + x1_train
     y_train = [0] * len(x0_train) + [1] * len(x1_train)
