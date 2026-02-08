@@ -2,6 +2,8 @@
 
 Google Colab で実行する量子リザバー計算 (QRC) の時系列2値分類デモです。
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dainfinity/qrc_classification_demo/blob/main/notebooks/qrc_timeseries_classification_colab.ipynb)
+
 ## ローカル開発環境 (uv)
 
 ```bash
