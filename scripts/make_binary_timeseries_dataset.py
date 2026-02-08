@@ -12,22 +12,44 @@ import random
 from pathlib import Path
 
 
-def _make_class_samples(
+def _make_chirp_samples(
     rng: random.Random,
     m: int,
     length: int,
-    freq_range: tuple[float, float],
+    chirp_sign: int,
     noise_std: float,
 ) -> list[list[float]]:
+    """Generate class samples with overlapping frequency bands but opposite chirp direction.
+
+    - class 0: chirp_sign = +1 (frequency increases over time)
+    - class 1: chirp_sign = -1 (frequency decreases over time)
+    """
     t = [k / (length - 1) for k in range(length)]
-    samples = []
+    samples: list[list[float]] = []
     for _ in range(m):
-        freq = rng.uniform(freq_range[0], freq_range[1])
+        f0 = rng.uniform(1.4, 3.2)
+        chirp_mag = rng.uniform(0.7, 1.5)
+        chirp = chirp_sign * chirp_mag
         phase = rng.uniform(0.0, 2.0 * math.pi)
-        amp = rng.uniform(0.7, 1.3)
+
+        amp_main = rng.uniform(0.8, 1.2)
+        amp_harm = rng.uniform(0.15, 0.35)
+        trend = rng.uniform(-0.25, 0.25)
+        envelope_strength = rng.uniform(0.0, 0.25)
+
         seq = []
         for tk in t:
-            value = amp * math.sin(2.0 * math.pi * freq * tk + phase)
+            phase_main = 2.0 * math.pi * (f0 * tk + 0.5 * chirp * tk * tk) + phase
+            phase_harm = 2.0 * math.pi * (2.0 * f0 * tk + chirp * tk * tk) + 0.3 * phase
+
+            # class-dependent weak envelope to make the task non-trivial but separable
+            if chirp_sign > 0:
+                envelope = 1.0 + envelope_strength * (tk - 0.5)
+            else:
+                envelope = 1.0 - envelope_strength * (tk - 0.5)
+
+            value = envelope * (amp_main * math.sin(phase_main) + amp_harm * math.sin(phase_harm))
+            value += trend * (tk - 0.5)
             value += rng.gauss(0.0, noise_std)
             seq.append(value)
         samples.append(seq)
@@ -72,10 +94,10 @@ def make_dataset(
     train_half = m_train // 2
     test_half = m_test // 2
 
-    x0_train = _make_class_samples(rng, train_half, length, (1.0, 2.0), 0.10)
-    x1_train = _make_class_samples(rng, m_train - train_half, length, (3.0, 4.2), 0.10)
-    x0_test = _make_class_samples(rng, test_half, length, (1.0, 2.0), 0.10)
-    x1_test = _make_class_samples(rng, m_test - test_half, length, (3.0, 4.2), 0.10)
+    x0_train = _make_chirp_samples(rng, train_half, length, chirp_sign=+1, noise_std=0.16)
+    x1_train = _make_chirp_samples(rng, m_train - train_half, length, chirp_sign=-1, noise_std=0.16)
+    x0_test = _make_chirp_samples(rng, test_half, length, chirp_sign=+1, noise_std=0.16)
+    x1_test = _make_chirp_samples(rng, m_test - test_half, length, chirp_sign=-1, noise_std=0.16)
 
     x_train = x0_train + x1_train
     y_train = [0] * len(x0_train) + [1] * len(x1_train)
