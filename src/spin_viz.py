@@ -92,15 +92,18 @@ def sample_spin_system(
 
 def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
     fig, ax = plt.subplots(figsize=(7.0, 4.5))
-    max_abs_j = max(abs(v) for v in snapshot.couplings.values()) if snapshot.couplings else 1.0
+    # Use a fixed visualization range so J-width changes are visible across redraws.
+    vis_j_max = 2.0
     cmap_edges = plt.cm.coolwarm
     cmap_nodes = plt.cm.viridis
 
     for (i, j), value in snapshot.couplings.items():
         x1, y1 = snapshot.positions[i]
         x2, y2 = snapshot.positions[j]
-        strength = 0.5 + 2.5 * abs(value) / (max_abs_j + 1e-12)
-        color = cmap_edges(0.5 + 0.5 * value / (max_abs_j + 1e-12))
+        norm_abs = np.clip(abs(value) / vis_j_max, 0.0, 1.0)
+        norm_signed = np.clip(value / vis_j_max, -1.0, 1.0)
+        strength = 0.6 + 2.6 * norm_abs
+        color = cmap_edges(0.5 + 0.5 * norm_signed)
         ax.plot([x1, x2], [y1, y2], color=color, linewidth=strength, alpha=0.9, zorder=1)
 
     node_metric = np.clip(np.abs(snapshot.h_field) / 3.0, 0.0, 1.0)
