@@ -91,48 +91,93 @@ def sample_spin_system(
 
 
 def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
-    fig, ax = plt.subplots(figsize=(7.0, 4.5))
-    # Use a fixed visualization range so J-width changes are visible across redraws.
+    fig, ax = plt.subplots(figsize=(8.2, 4.8), facecolor="#0b0f19")
+    # Fixed range: changes in J width stay visually comparable.
     vis_j_max = 2.0
-    cmap_edges = plt.cm.coolwarm
-    cmap_nodes = plt.cm.viridis
+    cmap_edges = plt.cm.RdYlBu_r
+    cmap_nodes = plt.cm.cividis
+
+    x = snapshot.positions[:, 0]
+    y = snapshot.positions[:, 1]
+    xmin, xmax = x.min(), x.max()
+    ymin, ymax = y.min(), y.max()
+    xpad = 0.25 * max(1.0, xmax - xmin)
+    ypad = 0.25 * max(1.0, ymax - ymin)
+    ax.set_xlim(xmin - xpad, xmax + xpad)
+    ax.set_ylim(ymin - ypad, ymax + ypad)
+
+    # Subtle gradient backdrop to make couplings stand out.
+    grad_x = np.linspace(0.0, 1.0, 240)
+    grad = np.outer(np.ones(140), grad_x)
+    ax.imshow(
+        grad,
+        extent=[xmin - xpad, xmax + xpad, ymin - ypad, ymax + ypad],
+        origin="lower",
+        cmap="magma",
+        alpha=0.13,
+        zorder=0,
+        aspect="auto",
+    )
 
     for (i, j), value in snapshot.couplings.items():
         x1, y1 = snapshot.positions[i]
         x2, y2 = snapshot.positions[j]
         norm_abs = np.clip(abs(value) / vis_j_max, 0.0, 1.0)
         norm_signed = np.clip(value / vis_j_max, -1.0, 1.0)
-        strength = 0.6 + 2.6 * norm_abs
+        strength = 0.7 + 3.2 * norm_abs
         color = cmap_edges(0.5 + 0.5 * norm_signed)
-        ax.plot([x1, x2], [y1, y2], color=color, linewidth=strength, alpha=0.9, zorder=1)
+        # Glow stroke + sharp stroke for a cleaner visual.
+        ax.plot([x1, x2], [y1, y2], color=color, linewidth=strength + 2.0, alpha=0.18, zorder=1)
+        ax.plot([x1, x2], [y1, y2], color=color, linewidth=strength, alpha=0.95, zorder=2)
 
-    node_metric = np.clip(np.abs(snapshot.h_field) / 3.0, 0.0, 1.0)
+    node_metric = np.clip(snapshot.h_field / 2.0, 0.0, 1.0)
     node_colors = [cmap_nodes(node_metric) for _ in range(snapshot.n_spins)]
+    # Soft halo
+    ax.scatter(
+        snapshot.positions[:, 0],
+        snapshot.positions[:, 1],
+        s=610,
+        c=node_colors,
+        edgecolors="none",
+        alpha=0.22,
+        zorder=3,
+    )
     ax.scatter(
         snapshot.positions[:, 0],
         snapshot.positions[:, 1],
         s=280,
         c=node_colors,
-        edgecolors="black",
-        linewidths=0.8,
-        zorder=2,
+        edgecolors="#f7f7f7",
+        linewidths=1.0,
+        zorder=4,
     )
     for idx, (x, y) in enumerate(snapshot.positions):
-        ax.text(x, y, str(idx), ha="center", va="center", fontsize=9, color="white", zorder=3)
+        ax.text(x, y, str(idx), ha="center", va="center", fontsize=9, color="#111111", zorder=5)
 
     ax.set_title(
         f"N={snapshot.n_spins}, topology={snapshot.topology}, J~U[-{snapshot.j_width:.2f}, {snapshot.j_width:.2f}], h={snapshot.h_field:.2f}",
         fontsize=11,
+        color="#f5f5f5",
+        pad=10,
+    )
+    ax.text(
+        0.02,
+        0.02,
+        "edge color: coupling sign/strength   |   node color: transverse field h",
+        transform=ax.transAxes,
+        fontsize=8.5,
+        color="#dddddd",
     )
     ax.set_aspect("equal")
     ax.axis("off")
+    fig.tight_layout()
     plt.show()
 
 
 def build_spin_control_panel(default_n: int = 8, seed: int = 1234) -> tuple[VBox, dict]:
     n_slider = IntSlider(value=int(default_n), min=4, max=20, step=1, description="N")
-    j_slider = FloatSlider(value=0.8, min=0.05, max=2.0, step=0.05, description="J width")
-    h_slider = FloatSlider(value=0.8, min=0.0, max=3.0, step=0.05, description="h field")
+    j_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="J width")
+    h_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="h field")
     topo_dropdown = Dropdown(
         options=[("All-to-all", "all_to_all"), ("1D Chain", "chain_1d"), ("2D NN", "grid_2d")],
         value="all_to_all",
