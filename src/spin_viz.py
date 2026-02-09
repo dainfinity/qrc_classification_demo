@@ -63,7 +63,7 @@ def sample_spin_system(
 
 
 def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
-    fig, ax = plt.subplots(figsize=(8.6, 4.9), facecolor="#0a0d16")
+    fig, ax = plt.subplots(figsize=(8.6, 4.9), facecolor="#000000")
     # Fixed range: changes in J width stay visually comparable.
     vis_j_max = 2.0
     cmap_edges = plt.cm.coolwarm
@@ -78,18 +78,8 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
     ax.set_xlim(xmin - xpad, xmax + xpad)
     ax.set_ylim(ymin - ypad, ymax + ypad)
 
-    # Subtle gradient backdrop to make couplings stand out.
-    grad_x = np.linspace(0.0, 1.0, 240)
-    grad = np.outer(np.ones(140), grad_x)
-    ax.imshow(
-        grad,
-        extent=[xmin - xpad, xmax + xpad, ymin - ypad, ymax + ypad],
-        origin="lower",
-        cmap="magma",
-        alpha=0.10,
-        zorder=0,
-        aspect="auto",
-    )
+    # Solid black background.
+    ax.set_facecolor("#000000")
 
     for (i, j), value in snapshot.couplings.items():
         x1, y1 = snapshot.positions[i]
@@ -124,7 +114,10 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
         zorder=4,
     )
     for idx, (x, y) in enumerate(snapshot.positions):
-        ax.text(x, y, str(idx), ha="center", va="center", fontsize=9, color="#111111", zorder=5)
+        r, g, b, _ = node_colors[idx]
+        luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        text_color = "#111111" if luminance > 0.6 else "#f5f5f5"
+        ax.text(x, y, str(idx), ha="center", va="center", fontsize=9, color=text_color, zorder=5)
 
     ax.set_title(
         f"N={snapshot.n_spins}, topology={snapshot.topology}, J~U[-{snapshot.j_width:.2f}, {snapshot.j_width:.2f}], h={snapshot.h_field:.2f}",
