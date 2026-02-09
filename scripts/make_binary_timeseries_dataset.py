@@ -25,8 +25,8 @@ def _make_order_swap_samples(
     class 0: low-frequency (early) -> high-frequency (late)
     class 1: high-frequency (early) -> low-frequency (late)
 
-    The swap time is randomized per sample within switch_range to make the
-    task less separable by trivial alignment.
+    The swap time is randomized per sample within switch_range. Set a fixed
+    range (e.g., 0.5 to 0.5) to keep the switch at a constant time.
     """
     t = [k / (length - 1) for k in range(length)]
     samples: list[list[float]] = []
@@ -91,7 +91,8 @@ def make_dataset(
     m_test: int = 100,
     length: int = 96,
     seed: int = 2026,
-    switch_range: tuple[float, float] = (0.35, 0.65),
+    switch_range: tuple[float, float] = (0.5, 0.5),
+    noise_std: float = 0.22,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(seed)
@@ -100,16 +101,16 @@ def make_dataset(
     test_half = m_test // 2
 
     x0_train = _make_order_swap_samples(
-        rng, train_half, length, label=0, noise_std=0.14, switch_range=switch_range
+        rng, train_half, length, label=0, noise_std=noise_std, switch_range=switch_range
     )
     x1_train = _make_order_swap_samples(
-        rng, m_train - train_half, length, label=1, noise_std=0.14, switch_range=switch_range
+        rng, m_train - train_half, length, label=1, noise_std=noise_std, switch_range=switch_range
     )
     x0_test = _make_order_swap_samples(
-        rng, test_half, length, label=0, noise_std=0.14, switch_range=switch_range
+        rng, test_half, length, label=0, noise_std=noise_std, switch_range=switch_range
     )
     x1_test = _make_order_swap_samples(
-        rng, m_test - test_half, length, label=1, noise_std=0.14, switch_range=switch_range
+        rng, m_test - test_half, length, label=1, noise_std=noise_std, switch_range=switch_range
     )
 
     x_train = x0_train + x1_train

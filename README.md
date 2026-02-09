@@ -18,4 +18,4 @@ uv run python scripts/make_binary_timeseries_dataset.py
 - `data/train_X.csv`, `data/train_y.csv`, `data/test_X.csv`, `data/test_y.csv`: 固定データセット
 - `scripts/make_binary_timeseries_dataset.py`: データセット再生成スクリプト
 
-データは「低周波→高周波／高周波→低周波」の時系列で、切り替え時刻をサンプルごとにランダム化してあります。
+データは「低周波→高周波／高周波→低周波」の時系列で、切り替え時刻は中央付近に固定され、ノイズ量を大きめにしています。
