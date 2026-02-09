@@ -63,11 +63,11 @@ def sample_spin_system(
 
 
 def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
-    fig, ax = plt.subplots(figsize=(8.2, 4.8), facecolor="#0b0f19")
+    fig, ax = plt.subplots(figsize=(8.6, 4.9), facecolor="#0a0d16")
     # Fixed range: changes in J width stay visually comparable.
     vis_j_max = 2.0
-    cmap_edges = plt.cm.RdYlBu_r
-    cmap_nodes = plt.cm.cividis
+    cmap_edges = plt.cm.coolwarm
+    cmap_nodes = plt.cm.viridis
 
     x = snapshot.positions[:, 0]
     y = snapshot.positions[:, 1]
@@ -86,7 +86,7 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
         extent=[xmin - xpad, xmax + xpad, ymin - ypad, ymax + ypad],
         origin="lower",
         cmap="magma",
-        alpha=0.13,
+        alpha=0.10,
         zorder=0,
         aspect="auto",
     )
@@ -111,7 +111,7 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
         s=610,
         c=node_colors,
         edgecolors="none",
-        alpha=0.22,
+        alpha=0.20,
         zorder=3,
     )
     ax.scatter(
@@ -119,7 +119,7 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
         snapshot.positions[:, 1],
         s=280,
         c=node_colors,
-        edgecolors="#f7f7f7",
+        edgecolors="#f4f4f4",
         linewidths=1.0,
         zorder=4,
     )
@@ -132,24 +132,34 @@ def draw_spin_snapshot(snapshot: SpinSystemSnapshot) -> None:
         color="#f5f5f5",
         pad=10,
     )
-    ax.text(
-        0.02,
-        0.02,
-        "edge color: coupling sign/strength   |   node color: transverse field h",
-        transform=ax.transAxes,
-        fontsize=8.5,
-        color="#dddddd",
-    )
+
+    # Colorbars: edge couplings (signed) and node field h.
+    edge_norm = plt.Normalize(vmin=-vis_j_max, vmax=vis_j_max)
+    node_norm = plt.Normalize(vmin=0.0, vmax=2.0)
+    edge_sm = plt.cm.ScalarMappable(norm=edge_norm, cmap=cmap_edges)
+    node_sm = plt.cm.ScalarMappable(norm=node_norm, cmap=cmap_nodes)
+    edge_sm.set_array([])
+    node_sm.set_array([])
+
+    cax_edges = fig.add_axes([0.88, 0.18, 0.02, 0.62])
+    cbar_edges = fig.colorbar(edge_sm, cax=cax_edges)
+    cbar_edges.set_label("J coupling", color="#f0f0f0", fontsize=9, labelpad=6)
+    cbar_edges.ax.tick_params(colors="#f0f0f0", labelsize=8)
+
+    cax_nodes = fig.add_axes([0.26, 0.08, 0.50, 0.035])
+    cbar_nodes = fig.colorbar(node_sm, cax=cax_nodes, orientation="horizontal")
+    cbar_nodes.set_label("transverse field h", color="#f0f0f0", fontsize=9, labelpad=6)
+    cbar_nodes.ax.tick_params(colors="#f0f0f0", labelsize=8)
     ax.set_aspect("equal")
     ax.axis("off")
     fig.tight_layout()
     plt.show()
 
 
-def build_spin_control_panel(default_n: int = 8, seed: int = 1234) -> tuple[VBox, dict]:
+def build_spin_control_panel(default_n: int = 4, seed: int = 1234) -> tuple[VBox, dict]:
     n_slider = IntSlider(value=int(default_n), min=4, max=20, step=1, description="N")
-    j_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="J width")
-    h_slider = FloatSlider(value=0.8, min=0.0, max=2.0, step=0.02, description="h field")
+    j_slider = FloatSlider(value=1.0, min=0.0, max=2.0, step=0.02, description="J width")
+    h_slider = FloatSlider(value=1.0, min=0.0, max=2.0, step=0.02, description="h field")
     topo_dropdown = Dropdown(
         options=[("All-to-all", "all_to_all"), ("1D Chain", "chain_1d")],
         value="all_to_all",
@@ -187,6 +197,6 @@ def build_spin_control_panel(default_n: int = 8, seed: int = 1234) -> tuple[VBox
     return panel, controls
 
 
-def launch_spin_widget(default_n: int = 8, seed: int = 1234) -> VBox:
+def launch_spin_widget(default_n: int = 4, seed: int = 1234) -> VBox:
     panel, _ = build_spin_control_panel(default_n=default_n, seed=seed)
     return panel
