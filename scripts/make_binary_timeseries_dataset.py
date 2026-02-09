@@ -32,8 +32,8 @@ def _make_order_swap_samples(
     samples: list[list[float]] = []
     switch_min, switch_max = switch_range
     for _ in range(m):
-        f_low = rng.uniform(1.6, 2.6)
-        f_high = rng.uniform(2.2, 3.4)
+        f_low = rng.uniform(1.7, 2.5)
+        f_high = rng.uniform(2.4, 3.2)
         phase_low = rng.uniform(0.0, 2.0 * math.pi)
         phase_high = rng.uniform(0.0, 2.0 * math.pi)
         amp_low = rng.uniform(0.75, 1.15)
