@@ -92,7 +92,7 @@ def make_dataset(
     length: int = 96,
     seed: int = 2026,
     switch_range: tuple[float, float] = (0.5, 0.5),
-    noise_std: float = 0.8,
+    noise_std: float = 0.4,
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(seed)
