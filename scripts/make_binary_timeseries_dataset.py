@@ -18,14 +18,19 @@ def _make_order_swap_samples(
     length: int,
     label: int,
     noise_std: float,
+    switch_range: tuple[float, float],
 ) -> list[list[float]]:
     """Generate samples with identical components but opposite temporal order.
 
     class 0: low-frequency (early) -> high-frequency (late)
     class 1: high-frequency (early) -> low-frequency (late)
+
+    The swap time is randomized per sample within switch_range to make the
+    task less separable by trivial alignment.
     """
     t = [k / (length - 1) for k in range(length)]
     samples: list[list[float]] = []
+    switch_min, switch_max = switch_range
     for _ in range(m):
         f_low = rng.uniform(1.2, 2.0)
         f_high = rng.uniform(3.0, 4.1)
@@ -35,10 +40,11 @@ def _make_order_swap_samples(
         amp_high = rng.uniform(0.75, 1.15)
         trend = rng.uniform(-0.15, 0.15)
         sharpness = rng.uniform(12.0, 20.0)
+        switch_t = rng.uniform(switch_min, switch_max)
 
         seq = []
         for tk in t:
-            gate = 1.0 / (1.0 + math.exp(-sharpness * (tk - 0.5)))
+            gate = 1.0 / (1.0 + math.exp(-sharpness * (tk - switch_t)))
             if label == 0:
                 w_low, w_high = 1.0 - gate, gate
             else:
@@ -85,6 +91,7 @@ def make_dataset(
     m_test: int = 100,
     length: int = 96,
     seed: int = 2026,
+    switch_range: tuple[float, float] = (0.35, 0.65),
 ) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     rng = random.Random(seed)
@@ -92,10 +99,18 @@ def make_dataset(
     train_half = m_train // 2
     test_half = m_test // 2
 
-    x0_train = _make_order_swap_samples(rng, train_half, length, label=0, noise_std=0.14)
-    x1_train = _make_order_swap_samples(rng, m_train - train_half, length, label=1, noise_std=0.14)
-    x0_test = _make_order_swap_samples(rng, test_half, length, label=0, noise_std=0.14)
-    x1_test = _make_order_swap_samples(rng, m_test - test_half, length, label=1, noise_std=0.14)
+    x0_train = _make_order_swap_samples(
+        rng, train_half, length, label=0, noise_std=0.14, switch_range=switch_range
+    )
+    x1_train = _make_order_swap_samples(
+        rng, m_train - train_half, length, label=1, noise_std=0.14, switch_range=switch_range
+    )
+    x0_test = _make_order_swap_samples(
+        rng, test_half, length, label=0, noise_std=0.14, switch_range=switch_range
+    )
+    x1_test = _make_order_swap_samples(
+        rng, m_test - test_half, length, label=1, noise_std=0.14, switch_range=switch_range
+    )
 
     x_train = x0_train + x1_train
     y_train = [0] * len(x0_train) + [1] * len(x1_train)
